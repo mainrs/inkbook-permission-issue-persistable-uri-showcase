@@ -14,10 +14,11 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -27,15 +28,23 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import com.example.permissionissueshowcase.ui.theme.PermissionIssueShowcaseTheme
+import com.google.accompanist.permissions.ExperimentalPermissionsApi
+import com.google.accompanist.permissions.isGranted
+import com.google.accompanist.permissions.rememberPermissionState
 
 
 class MainActivity : ComponentActivity() {
+    @OptIn(ExperimentalPermissionsApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         setContent {
             val context = LocalContext.current
             var files by remember { mutableStateOf<List<Uri>?>(null) }
+
+            val permissionState = rememberPermissionState(
+                android.Manifest.permission.WRITE_EXTERNAL_STORAGE
+            )
 
             val launcher =
                 rememberLauncherForActivityResult(contract = PermissableFolder()) { potentialUri ->
@@ -55,16 +64,26 @@ class MainActivity : ComponentActivity() {
                 Surface(
                     modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background
                 ) {
-                    Greeting("Android")
+                    Column(modifier = Modifier.fillMaxWidth()) {
 
-                    if (files == null) {
-                        TextButton(onClick = { launcher.launch(null) }) {
-                            Text(text = "Trigger OPEN_DOCUMENT_TREE Intent")
-                        }
-                    } else {
-                        Column(modifier = Modifier.fillMaxWidth()) {
-                            files?.forEach { uri ->
-                                Text(text = uri.toString())
+                        // Checks to see if we have permission or requests it.
+                        if (permissionState.status.isGranted) {
+                            Text("WRITE_EXTERNAL_STORAGE permission granted")
+
+                            if (files == null) {
+                                OutlinedButton(onClick = { launcher.launch(null) }) {
+                                    Text(text = "Trigger OPEN_DOCUMENT_TREE Intent")
+                                }
+                            } else {
+                                files?.forEach { uri ->
+                                    Text(text = uri.toString())
+                                }
+                            }
+
+                            // Request permission logic.
+                        } else {
+                            Button(onClick = { permissionState.launchPermissionRequest() }) {
+                                Text("Request WRITE_EXTERNAL_STORAGE permission")
                             }
                         }
                     }
